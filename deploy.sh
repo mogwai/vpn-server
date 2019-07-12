@@ -1,11 +1,9 @@
 #!/bin/sh
 
-# terraform apply -auto-approve
-# ip=$(terraform output ip)
+terraform apply -auto-approve
+ip=$(terraform output ip)
 
-ip=18.200.107.240
-
-rc () {
+rc() {
     ssh ubuntu@$ip $1
 }
 
