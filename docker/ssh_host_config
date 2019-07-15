@@ -1,7 +1,0 @@
-Host vpn
-  HostName 127.0.0.1
-  Port 2222
-  User root
-  IdentityFile ~/work/vpn-server/docker/ansible
-  StrictHostKeyChecking no
-  UserKnownHostsFile=/dev/null
