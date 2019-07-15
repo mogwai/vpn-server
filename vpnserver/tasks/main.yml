@@ -11,43 +11,41 @@
     mode: 0700
 
 - name: Make CA Folder
-  copy:
-    src: easyrsa
-    dest: ~/ca_server
-    mode: 0700
+  shell: cp -r ~/vpn_server ~/ca_server
 
 - name: Check that the server key
   stat:
     path: /etc/openvpn/server.key
   register: stat_result
 
+- name: VPN PKI folder
+  stat:
+    path: ~/vpn_server/easyrsa/pki
+  register: vpn_pki_stat
+
+- name: CA PKI folder
+  stat:
+    path: ~/ca_server/easyrsa/pki
+  register: ca_pki_stat
+
 - name: Generate CA Server
-  command: cd ~/ca_server/easyrsa/ && ./easyrsa init-pki && echo SimpleCA | ./easyrsa build-ca nopass
+  shell: cd ~/ca_server/easyrsa/ && ./easyrsa init-pki && echo SimpleCA | ./easyrsa build-ca nopass
 
 - name: Generate VPN Server keys
-  command: cd ~/vpn_server/easyrsa/ && ./easyrsa init-pki && ./easyrsa gen-req server nopass
+  shell: cd ~/vpn_server/easyrsa/ && ./easyrsa init-pki && echo server | ./easyrsa gen-req server nopass
 
 - name: Move server key
-  copy:
-    src: ~/vpn_server/pki/private/server.key
-    dest: /etc/openvpn/
-    remote_src: yes
-    when: stat_result.stat.exists == False
+  shell: cp ~/vpn_server/pki/private/server.key /etc/openvpn/
+  when: stat_result.stat.exists == False
 
 - name: Import server.req
-  command: cd ~/ca_server/easyrsa/ && ./easyrsa import-req ~/vpn_server/reqs/server.req server && echo yes | ./easyrsa sign-req server server
+  shell: cd ~/ca_server/easyrsa/ && ./easyrsa import-req ~/vpn_server/reqs/server.req server && echo yes | ./easyrsa sign-req server server
 
 - name: Move Server Certificate
-  copy:
-    src: ~/ca_server/pki/issued/server.crt
-    dest: /etc/openvpn/
-    remote_src: yes
+  shell: cp ~/ca_server/pki/issued/server.crt /etc/openvpn/
 
 - name: Move CA Certificate
-  copy:
-    src: ~/ca_server/pki/ca.crt
-    dest: /etc/openvpn/
-    remote_src: yes
+  shell: cp  ~/ca_server/pki/ca.crt /etc/openvpn/
 
 - name: Generate DH keys
   command: cd ~/vpn_server/easyrsa/ && ./easyrsa gen-dh
@@ -119,3 +117,17 @@
   copy: 
     src: base.conf
     dest: /etc/openvpn/
+
+- name: Move make_config.sh
+  copy: 
+    src: make_config.sh
+    dest: ~/client-configs/
+    mode: 0700
+
+- name: Create Client 1 openvpn 
+  command: cd client-configs && ./make_config.sh client1
+
+- name: Fetch .ovpn file
+  fetch: 
+    dest: ~/client-configs/files/client1.ovpn
+    src: ./
