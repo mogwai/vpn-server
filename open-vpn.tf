@@ -53,7 +53,6 @@ resource "aws_security_group" "allow_ssh" {
   }
 }
 
-
 resource "aws_eip" "vpn_ip" {
   tags = {
     Name = "vpn_server_ip"
@@ -61,14 +60,6 @@ resource "aws_eip" "vpn_ip" {
 
 
   instance = aws_instance.vpn_proxy.id
-}
-
-resource "aws_eip" "ca_ip" {
-  tags = {
-    Name = "ca_server_ip"
-  }
-
-  instance = aws_instance.ca_server.id
 }
 
 resource "aws_instance" "vpn_proxy" {
@@ -85,40 +76,14 @@ resource "aws_instance" "vpn_proxy" {
 
   depends_on = [aws_key_pair.admin, aws_security_group.allow_ssh]
 
-  provisioner "local-exec" {
+    provisioner "local-exec" {
         command = <<EOH
-    sudo apt-get update
-    sudo apt install python
-    EOH
-  }
-}
-
-resource "aws_instance" "ca_server" {
-  ami           = "ami-01e6a0b85de033c99"
-  instance_type = "t2.micro"
-
-  tags = {
-    Name = "ca_server"
-  }
-
-  key_name = aws_key_pair.admin.key_name
-
-  security_groups = [aws_security_group.allow_ssh.name]
-
-  depends_on = [aws_key_pair.admin, aws_security_group.allow_ssh]
-
-  provisioner "local-exec" {
-        command = <<EOH
-    sudo apt-get update
-    sudo apt install python
-    EOH
+        sudo apt-get update
+        sudo apt install python
+        EOH
   }
 }
 
 output "vpn-server-ip" {
   value = aws_eip.vpn_ip.public_ip
-}
-
-output "ca-server-ip" {
-  value = aws_eip.ca_ip.public_ip
 }

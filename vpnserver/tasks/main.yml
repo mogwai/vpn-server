@@ -4,103 +4,124 @@
   apt:
     name: openvpn
 
+- name: Check if copied
+  stat:
+    path: ~/ca_server
+  register: ca_files
+
 - name: Copy EasyRSA
   copy:
     src: easyrsa
     dest: ~/vpn_server/
     mode: 0700
+  when: not ca_files.stat.exists
 
-- name: Make CA Folder
+- name: Make CA Folders
   shell: cp -r ~/vpn_server ~/ca_server
-
-- name: Check that the server key
-  stat:
-    path: /etc/openvpn/server.key
-  register: stat_result
+  when: not ca_files.stat.exists
 
 - name: VPN PKI folder
   stat:
     path: ~/vpn_server/easyrsa/pki
-  register: vpn_pki_stat
+  register: vpn_pki
 
 - name: CA PKI folder
   stat:
     path: ~/ca_server/easyrsa/pki
-  register: ca_pki_stat
+  register: ca_pki
+
+- name: INIT PKI CA Server
+  shell: cd ~/ca_server/easyrsa/ && ./easyrsa init-pki
+  when: not ca_pki.stat.exists
+
+- name: Check CA crt
+  stat:
+    path: ~/ca_server/easyrsa/pki/ca.crt
+  register: ca_crt
 
 - name: Generate CA Server
-  shell: cd ~/ca_server/easyrsa/ && ./easyrsa init-pki && echo SimpleCA | ./easyrsa build-ca nopass
+  shell: cd ~/ca_server/easyrsa/ && echo SimpleCA | ./easyrsa build-ca nopass
+  when: not ca_crt.stat.exists 
+
+- name: INIT PKI VPN Server
+  shell: cd ~/vpn_server/easyrsa/ && ./easyrsa init-pki
+  when: not vpn_pki.stat.exists
+
+- name: Check Server Key Exists
+  stat:
+    path: ~/vpn_server/easyrsa/pki/private/server.key
+  register: vpn_key
 
 - name: Generate VPN Server keys
-  shell: cd ~/vpn_server/easyrsa/ && ./easyrsa init-pki && echo server | ./easyrsa gen-req server nopass
+  shell: cd ~/vpn_server/easyrsa/ && echo server | ./easyrsa gen-req server nopass
+  when: not vpn_key.stat.exists
 
 - name: Move server key
-  shell: cp ~/vpn_server/pki/private/server.key /etc/openvpn/
-  when: stat_result.stat.exists == False
+  shell: cp ~/vpn_server/easyrsa/pki/private/server.key /etc/openvpn/
 
 - name: Import server.req
-  shell: cd ~/ca_server/easyrsa/ && ./easyrsa import-req ~/vpn_server/reqs/server.req server && echo yes | ./easyrsa sign-req server server
+  shell: cd ~/ca_server/easyrsa/ && ./easyrsa import-req ~/vpn_server/easyrsa/pki/reqs/server.req server && echo yes | ./easyrsa sign-req server server
 
 - name: Move Server Certificate
-  shell: cp ~/ca_server/pki/issued/server.crt /etc/openvpn/
+  shell: cp ~/ca_server/easyrsa/pki/issued/server.crt /etc/openvpn/
 
 - name: Move CA Certificate
-  shell: cp  ~/ca_server/pki/ca.crt /etc/openvpn/
+  shell: cp  ~/ca_server/easyrsa/pki/ca.crt /etc/openvpn/
 
 - name: Generate DH keys
-  command: cd ~/vpn_server/easyrsa/ && ./easyrsa gen-dh
+  shell: cd ~/vpn_server/easyrsa && ./easyrsa gen-dh
 
 - name: Create HMAC Signature
-  command: cd ~/vpn_server/easyrsa/ && openvpn --genkey --secret ta.key
+  shell: cd ~/vpn_server/easyrsa/ && openvpn --genkey --secret ta.key
 
 - name: Move HMAC Signature
   copy:
-    src: ~/vpn_server/ta.key
+    src: ~/vpn_server/easyrsa/ta.key
     dest: /etc/openvpn/
     remote_src: yes
 
 - name: Move DH Key
-  copy: 
-    src: ~/vpn_server/pki/dh.pem
+  copy:
+    src: ~/vpn_server/easyrsa/pki/dh.pem
     dest: /etc/openvpn/
     remote_src: yes
 
 - name: Creates directory
-  file: 
+  file:
     path: ~/client-configs/keys
     state: directory
     mode: 0700
 
 - name: Generate and Sign Client
-  command: cd ~/vpn_server/easyrsa/ && ./easyrsa gen-req client1 nopass && cp pki/private/client1.key ~/client-configs/keys/ && cd ~/ca_server/easyrsa/ && ./easyrsa import-req ~/vpn-serverpki/reqs/client1.req client1 && echo yes | ./easyrsa sign-req client client1
+  shell: cd ~/vpn_server/easyrsa/ && echo client1 | ./easyrsa gen-req client1 nopass && cp pki/private/client1.key ~/client-configs/keys/ && cd ~/ca_server/easyrsa/ && ./easyrsa import-req ~/vpn_server/easyrsa/pki/reqs/client1.req client1 && echo yes | ./easyrsa sign-req client client1
 
 - name: Move Signed Client Certificate
-  copy: 
-    src: ~/ca_server/pki/issued/client1.crt
+  copy:
+    src: ~/ca_server/easyrsa/pki/issued/client1.crt
     dest: ~/client-configs/keys/
     remote_src: yes
 
 - name: Move HMAC
-  copy: 
-    src: ~/vpn_server/ta.key
+  copy:
+    src: ~/vpn_server/easyrsa/ta.key
     dest: ~/client-configs/keys/
     remote_src: yes
 
 - name: Move CA Certificate
-  copy: 
+  copy:
     src: /etc/openvpn/ca.crt
     dest: ~/client-configs/keys/
     remote_src: yes
 
 - name: Move Server Config
-  copy: 
+  copy:
     src: server.conf
     dest: /etc/openvpn/
 
 - name: Forward ipv4
-  lineinfile: 
+  lineinfile:
     path: /etc/sysctl.conf
-    regexp: '^net.ipv4.ip_forward'
+    regexp: "^net.ipv4.ip_forward"
     line: net.ipv4.ip_forward=1
 
 - name: Start Server
@@ -114,20 +135,20 @@
     state: enabled
 
 - name: Move Client Base Conf
-  copy: 
+  copy:
     src: base.conf
     dest: /etc/openvpn/
 
 - name: Move make_config.sh
-  copy: 
+  copy:
     src: make_config.sh
     dest: ~/client-configs/
     mode: 0700
 
-- name: Create Client 1 openvpn 
-  command: cd client-configs && ./make_config.sh client1
+- name: Create Client 1 openvpn
+  shell: cd client-configs && ./make_config.sh client1
 
 - name: Fetch .ovpn file
-  fetch: 
-    dest: ~/client-configs/files/client1.ovpn
-    src: ./
+  fetch:
+    src: ~/client-configs/files/client1.ovpn
+    dest: ./

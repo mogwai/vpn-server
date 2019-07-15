@@ -1,5 +1,5 @@
 ---
-- hosts: vpn_server
+- hosts: vpn
   become: true
   gather_facts: false
   roles:
