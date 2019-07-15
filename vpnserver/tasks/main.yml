@@ -127,17 +127,12 @@
 - name: Start Server
   systemd:
     name: openvpn@server
-    state: started
-
-- name: Enable Server
-  systemd:
-    name: openvpn@server
-    state: enabled
+    enabled: yes
 
 - name: Move Client Base Conf
   copy:
     src: base.conf
-    dest: /etc/openvpn/
+    dest: /root/client-configs/
 
 - name: Move make_config.sh
   copy:
@@ -145,10 +140,11 @@
     dest: ~/client-configs/
     mode: 0700
 
-- name: Create Client 1 openvpn
-  shell: cd client-configs && ./make_config.sh client1
+- name: Create client1
+  shell: cd ~/client-configs && ./make_config.sh client1
 
 - name: Fetch .ovpn file
   fetch:
     src: ~/client-configs/files/client1.ovpn
     dest: ./
+    flat: yes

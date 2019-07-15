@@ -57,8 +57,6 @@ resource "aws_eip" "vpn_ip" {
   tags = {
     Name = "vpn_server_ip"
   }
-
-
   instance = aws_instance.vpn_proxy.id
 }
 
@@ -84,6 +82,6 @@ resource "aws_instance" "vpn_proxy" {
   }
 }
 
-output "vpn-server-ip" {
+output "ip" {
   value = aws_eip.vpn_ip.public_ip
 }
