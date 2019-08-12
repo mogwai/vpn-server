@@ -134,6 +134,9 @@
     src: base.conf
     dest: /root/client-configs/
 
+- name:
+  shell: mkdir /root/client-configs/files
+
 - name: Move make_config.sh
   copy:
     src: make_config.sh
