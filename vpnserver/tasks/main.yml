@@ -124,17 +124,12 @@
     regexp: "^net.ipv4.ip_forward"
     line: net.ipv4.ip_forward=1
 
-- name: Start Server
-  systemd:
-    name: openvpn@server
-    enabled: yes
-
 - name: Move Client Base Conf
   copy:
     src: base.conf
     dest: /root/client-configs/
 
-- name:
+- name: Make root client config folder
   shell: mkdir /root/client-configs/files
 
 - name: Move make_config.sh
@@ -146,6 +141,12 @@
 - name: Create client1
   shell: cd ~/client-configs && ./make_config.sh client1
 
+- name: Start Server
+  systemd:
+    name: openvpn@server
+    enabled: yes
+
+- name: Start 
 - name: Fetch .ovpn file
   fetch:
     src: ~/client-configs/files/client1.ovpn
