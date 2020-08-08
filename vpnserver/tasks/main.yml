@@ -141,12 +141,14 @@
 - name: Create client1
   shell: cd ~/client-configs && ./make_config.sh client1
 
+- name: Create CCD directory
+  shell: mkdir -p /etc/openvpn/ccd
+
 - name: Start Server
   systemd:
     name: openvpn@server
     enabled: yes
 
-- name: Start 
 - name: Fetch .ovpn file
   fetch:
     src: ~/client-configs/files/client1.ovpn
