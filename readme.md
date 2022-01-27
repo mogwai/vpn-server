@@ -36,3 +36,15 @@ iptables -A INPUT -i tun0 -m state --state RELATED,ESTABLISHED -j ACCEPT
 # Forward everything
 iptables -A FORWARD -j ACCEPT
 ```
+
+install openresolv
+
+https://blog.syddel.uk/?p=253
+
+
+
+## Delete a client
+
+delete ca_server/certs_by_serial
+delete line from ca_server/easyrsa/pki/index.txt
+
