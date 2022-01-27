@@ -42,9 +42,11 @@ install openresolv
 https://blog.syddel.uk/?p=253
 
 
-
 ## Delete a client
+1. Check the index.txt for serial
+2. delete line from ca_server/easyrsa/pki/index.txt
+3. delete ca_server/certs_by_serial/serial.pem
 
-delete ca_server/certs_by_serial
-delete line from ca_server/easyrsa/pki/index.txt
+## Static IP Address
+https://kifarunix.com/assign-static-ip-addresses-for-openvpn-clients/
 
