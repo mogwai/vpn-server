@@ -50,3 +50,6 @@ https://blog.syddel.uk/?p=253
 ## Static IP Address
 https://kifarunix.com/assign-static-ip-addresses-for-openvpn-clients/
 
+
+## RESTARTING VPN SERVER!
+- You must set up the iptables to forward traffic correctly after restarting
